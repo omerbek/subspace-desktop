@@ -296,7 +296,7 @@ export default defineComponent({
     async checkIdentity() {
       const config = appConfig.getAppConfig()
       if (config) {
-        if (config.rewardAddress == "") {
+        if (config.rewardAddress) {
           await this.client.createRewardAddress()
           await this.viewMnemonic()
         }
