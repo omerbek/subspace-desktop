@@ -65,7 +65,6 @@ export default defineComponent({
     },
     firstLoad() {
       console.log("INDEX - First Time RUN.")
-      this.loadNetworkData()
       const config = appConfig.getAppConfig()
       if (config && config.launchOnBoot) {
         Notify.create({
@@ -73,22 +72,6 @@ export default defineComponent({
           icon: "info"
         })
       }
-    },
-    async loadNetworkData() {
-      const raceResult = util.promiseTimeout(7000, this.client.connectPublicApi())
-      raceResult.then(async() => {
-        const networkSegmentCount = await this.client.getNetworkSegmentCount()
-        await this.client.disconnectPublicApi()
-        const totalSize = networkSegmentCount * 256 * util.PIECE_SIZE
-        const blockchainSizeGB = Math.round((totalSize * 100) / util.GB) / 100
-        appConfig.updateAppConfig(null, {
-          networkSegmentCount,
-          blockchainSizeGB: blockchainSizeGB === 0 ? 0.1 : blockchainSizeGB
-        }, null, null, null)
-      })
-      raceResult.catch(_ => {
-        console.error("The server seems to be too congested! Please try again later...")
-      })
     },
     async viewDisclaimer(destination: string) {
       const modal = await util.showModal(disclaimer)

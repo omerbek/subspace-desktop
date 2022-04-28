@@ -143,14 +143,13 @@ export default defineComponent({
       client: global.client,
       plotFinished: false,
       localSegmentCount: 0,
-      networkSegmentCount: 0,
       plotDirectory: ""
     }
   },
   computed: {
     progresspct(): number {
       const progress = parseFloat(
-        ((this.localSegmentCount * 100) / this.networkSegmentCount).toFixed(2)
+        ((this.plottingData.finishedGB * 100) / this.plottingData.allocatedGB).toFixed(2)
       )
       return isNaN(progress) ? 0 : progress <= 100 ? progress : 100
     },
@@ -177,14 +176,8 @@ export default defineComponent({
         this.plottingData.finishedGB = this.plottingData.allocatedGB
     },
     localSegmentCount(localCount) {
-      if (localCount >= this.networkSegmentCount) {
-        this.plottingData.status = `Archived ${localCount.toLocaleString()} Segments`
-      } else {
-        this.plottingData.status = `Archived ${localCount.toLocaleString()} of ${this.networkSegmentCount.toLocaleString()} Segments`
-      }
-
-      this.plottingData.finishedGB =
-        (localCount * this.plottingData.allocatedGB) / this.networkSegmentCount
+      this.plottingData.status = `Archived ${localCount.toLocaleString()} Segments`
+      // this.plottingData.finishedGB = ???
     }
   },
   async mounted() {
@@ -223,21 +216,20 @@ export default defineComponent({
         if (!farmerStarted) {
           console.error("PLOTTING PROGRESS | Farmer start error!")
         }
-        const networkSegmentCount = config.segmentCache.networkSegmentCount
-        this.networkSegmentCount = networkSegmentCount
+
         this.plottingData.allocatedGB = config.plot.sizeGB
         this.localSegmentCount = await this.client.getLocalSegmentCount()
         do {
           await new Promise((resolve) => setTimeout(resolve, 2000))
           this.localSegmentCount = await this.client.getLocalSegmentCount()
-        } while (this.localSegmentCount < this.networkSegmentCount)
+        } while (this.plottingData.remainingGB > 0)
       }
     },
     startTimers() {
       farmerTimer = window.setInterval(() => {
         this.elapsedms += 1000
         const ms =
-          (this.elapsedms * this.networkSegmentCount) / this.localSegmentCount -
+          (this.elapsedms * this.plottingData.allocatedGB) / this.plottingData.finishedGB -
           this.elapsedms
         this.remainingms = util.toFixed(ms, 2)
       }, 1000)

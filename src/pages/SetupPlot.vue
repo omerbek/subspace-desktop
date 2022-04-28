@@ -214,7 +214,7 @@ export default defineComponent({
   methods: {
     async confirmCreateDir() {
       const dirExists = await native.dirExists(this.plotDirectory)
-
+      console.log("INSIDE CONFIRM CREATE")
       if (dirExists) {
         const files = await tauri.fs
           .readDir(this.plotDirectory)
@@ -232,6 +232,7 @@ export default defineComponent({
           }
         }
       } else if (!dirExists) {
+        console.log("INSIDE ELSE IF DIR EXIST")
         appDataDialog.newDirectoryConfirm(
           this.plotDirectory,
           this.prepareForPlotting
@@ -239,12 +240,13 @@ export default defineComponent({
       }
     },
     async prepareForPlotting() {
+      console.log("INSIDE PREPARE FOR PLOTTING")
       if (this.plotDirectory.charAt(this.plotDirectory.length - 1) == "/")
         this.plotDirectory.slice(-1)
 
       await appData.createCustomDataDir(this.plotDirectory)
-      appConfig.updateAppConfig({ location: this.plotDirectory, sizeGB: this.allocatedGB }, null, null, null, null)
-
+      appConfig.updateAppConfig({ location: this.plotDirectory, sizeGB: this.allocatedGB }, null, null, null)
+      console.log("UPDATED APP CONFIG FROM PREPARE PLOT")
       await this.checkIdentity()
     },
     async updateDriveStats() {
@@ -259,9 +261,10 @@ export default defineComponent({
       if (result) this.plotDirectory = result
     },
     async checkIdentity() {
+      console.log("INSIDE CHECK IDENTITY")
       const config = appConfig.getAppConfig()
       if (config) {
-        if (config.rewardAddress) {
+        if (!config.rewardAddress) {
           await this.client.createRewardAddress()
           await this.viewMnemonic()
         }
@@ -274,7 +277,7 @@ export default defineComponent({
     async viewMnemonic() {
       const modal = await util.showModal(mnemonicModal)
       modal?.onDismiss(() => {
-        appConfig.updateAppConfig(null, null, null, null, true)
+        appConfig.updateAppConfig(null, null, null, true)
         this.$router.replace({ name: "plottingProgress" })
       })
     }

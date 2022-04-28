@@ -38,19 +38,15 @@ export function plotTimeMsEstimate(gb: number): number {
 export async function resetAndClear(): Promise<void> {
   await appData.clearDataDir()
 }
+
 export interface AppConfig {
   [index: string]: any
   plot: Plot
-  segmentCache: SegmentCache
   launchOnBoot: boolean
   rewardAddress: string
   plottingStarted: boolean
 }
 
-export interface SegmentCache {
-  networkSegmentCount: number
-  blockchainSizeGB: number
-}
 export interface Plot {
   location: string
   sizeGB: number
@@ -58,7 +54,6 @@ export interface Plot {
 
 export const emptyAppConfig: AppConfig = {
   plot: { location: "", sizeGB: 0 },
-  segmentCache: { networkSegmentCount: 0, blockchainSizeGB: 0 },
   launchOnBoot: true,
   rewardAddress: "",
   plottingStarted: false

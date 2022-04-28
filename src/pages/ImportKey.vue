@@ -58,7 +58,7 @@ export default defineComponent({
       }
     },
     async importKey() {
-      appConfig.updateAppConfig(null, null, null, this.rewardAddress, null)
+      appConfig.updateAppConfig(null, null, this.rewardAddress, null)
       this.$router.replace({ name: "setupPlot" })
     },
     skip() {

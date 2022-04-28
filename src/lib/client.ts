@@ -29,10 +29,6 @@ const appsLink = "https://polkadot.js.org/apps/?rpc=" + NETWORK_RPC + "#/explore
 export class Client {
   protected firstLoad = false
   protected mnemonic = ""
-  protected publicApi: ApiPromise = new ApiPromise({
-    provider: new WsProvider(NETWORK_RPC, false),
-    types: util.apiTypes
-  })
   protected localApi: ApiPromise = new ApiPromise({
     provider: new WsProvider(LOCAL_RPC, false),
     types: util.apiTypes
@@ -124,7 +120,6 @@ export class Client {
         console.log("block subscription stop triggered")
         this.unsubscribe()
         this.localApi.disconnect()
-        this.publicApi.disconnect()
         try {
           this.clearTauriDestroy()
           storeBlocks(this.data.farming.farmed)
@@ -161,26 +156,6 @@ export class Client {
     }
     await this.localApi.isReady
   }
-  /* Connect to PUBLIC-rpc node - Example: farm-rpc.subspace.network */
-  public async connectPublicApi(): Promise<void> {
-    if (!this.publicApi.isConnected) {
-      await this.publicApi.connect()
-    }
-    await this.publicApi.isReady
-  }
-
-   /* Disconnects from PUBLIC-rpc node - Example: farm-rpc.subspace.network */
-  public async disconnectPublicApi(): Promise<void> {
-    await this.publicApi.disconnect()
-  }
-
-  public async getBlocksData(): Promise<[number, number]> {
-    const blocksNumbers = await Promise.all([
-      this.getLocalLastBlockNumber(),
-      this.getNetworkLastBlockNumber()
-    ])
-    return blocksNumbers
-  }
 
   /* BLOCK NUMBERS */
   // Used to check and display LOCAL node status vs latest network block
@@ -188,20 +163,11 @@ export class Client {
     const signedBlock = await this.localApi.rpc.chain.getBlock()
     return signedBlock.block.header.number.toNumber()
   }
-  // Used to check and display LOCAL node status vs latest network block
-  public async getNetworkLastBlockNumber(): Promise<number> {
-    const signedBlock = await this.publicApi.rpc.chain.getBlock()
-    return signedBlock.block.header.number.toNumber()
-  }
 
   public async getLocalSegmentCount(): Promise<number> {
     const plot_progress_tracker =
       ((await invoke("plot_progress_tracker")) as number) / 256
     return plot_progress_tracker <= 1 ? 1 : plot_progress_tracker - 1
-  }
-  public async getNetworkSegmentCount(): Promise<number> {
-    const recordsRoot = await this.publicApi.query.subspace.counterForRecordsRoot() as u32
-    return recordsRoot.toNumber()
   }
 
   /* NODE INTEGRATION */
@@ -231,7 +197,7 @@ export class Client {
     const keyring = new Keyring()
     const pair = keyring.createFromUri(mnemonic)
     keyring.setSS58Format(2254); // 2254 is the prefix for subspace-testnet
-    appConfig.updateAppConfig(null, null, null, pair.address, null)
+    appConfig.updateAppConfig(null, null, pair.address, null)
     this.mnemonic = mnemonic
   }
 
