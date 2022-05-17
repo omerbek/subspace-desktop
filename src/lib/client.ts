@@ -160,10 +160,20 @@ export class Client {
   }
   /* Connect to PUBLIC-rpc node - Example: farm-rpc.subspace.network */
   public async connectPublicApi(): Promise<void> {
+    util.infoLogger("CLIENT | inside CONNECT PUBLIC API")
     if (!this.publicApi.isConnected) {
+      util.infoLogger("CLIENT | INSIDE IF")
       await this.publicApi.connect()
+      util.infoLogger("CLIENT | CONNECT SUCCESSFUL")
     }
-    await this.publicApi.isReady
+    util.infoLogger("CLIENT | WAITING FOR IS READY")
+    try {
+      await this.publicApi.isReady
+    } catch(error) {
+      util.errorLogger("CLIENT | ???")
+      util.errorLogger(error)
+    }
+    util.infoLogger("CLIENT | IS READY SUCCESSFUL")
   }
 
    /* Disconnects from PUBLIC-rpc node - Example: farm-rpc.subspace.network */
@@ -225,7 +235,6 @@ export class Client {
 
   public async createRewardAddress(): Promise<string> {
     try {
-      util.infoLogger("before create keyring")
       await cryptoWaitReady()
       console.log('createRewardAddress')
       const mnemonic = mnemonicGenerate()
