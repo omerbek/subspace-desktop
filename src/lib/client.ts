@@ -1,7 +1,7 @@
 import { ApiPromise, Keyring } from "@polkadot/api"
 import type { Vec } from "@polkadot/types/codec"
 import type { u128, u32 } from "@polkadot/types"
-import { mnemonicGenerate } from "@polkadot/util-crypto"
+import { mnemonicGenerate, cryptoWaitReady } from "@polkadot/util-crypto"
 import * as event from "@tauri-apps/api/event"
 import { invoke } from "@tauri-apps/api/tauri"
 import { reactive } from "vue"
@@ -223,14 +223,24 @@ export class Client {
     this.data.farming.farmed = this.farmed
   }
 
-  public createRewardAddress(): string {
-    console.log('createRewardAddress')
-    const mnemonic = mnemonicGenerate()
-    const keyring = new Keyring({ type: 'sr25519', ss58Format: 2254}) // 2254 is the prefix for subspace-testnet
-    const pair = keyring.createFromUri(mnemonic)
-    this.mnemonic = mnemonic
-    console.log('mnemonic', mnemonic)
-    return pair.address
+  public async createRewardAddress(): Promise<string> {
+    try {
+      util.infoLogger("before create keyring")
+      await cryptoWaitReady()
+      console.log('createRewardAddress')
+      const mnemonic = mnemonicGenerate()
+      util.infoLogger("before create keyring")
+      const keyring = new Keyring({ type: 'sr25519', ss58Format: 2254}) // 2254 is the prefix for subspace-testnet
+      const pair = keyring.createFromUri(mnemonic)
+      util.infoLogger("after create keyring")
+      this.mnemonic = mnemonic
+      console.log('mnemonic', mnemonic)
+      return pair.address
+    } catch(error) {
+      util.errorLogger(error)
+      return "ERROR! Could not generate keyring"
+    }
+
   }
 
   /* FARMER INTEGRATION */

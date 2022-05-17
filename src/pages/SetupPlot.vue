@@ -309,7 +309,7 @@ export default defineComponent({
       const config = await appConfig.read()
       if (config.rewardAddress === "") {
         util.infoLogger("SETUP PLOT | reward address was empty, creating a new one")
-        this.rewardAddress = this.$client.createRewardAddress()
+        this.rewardAddress = await this.$client.createRewardAddress()
         await this.viewMnemonic()
       }
       else {
