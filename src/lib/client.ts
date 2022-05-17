@@ -160,20 +160,17 @@ export class Client {
   }
   /* Connect to PUBLIC-rpc node - Example: farm-rpc.subspace.network */
   public async connectPublicApi(): Promise<void> {
-    util.infoLogger("CLIENT | inside CONNECT PUBLIC API")
     if (!this.publicApi.isConnected) {
-      util.infoLogger("CLIENT | INSIDE IF")
       await this.publicApi.connect()
-      util.infoLogger("CLIENT | CONNECT SUCCESSFUL")
     }
-    util.infoLogger("CLIENT | WAITING FOR IS READY")
     try {
-      await this.publicApi.isReady
+      util.infoLogger("CLIENT | before isReady")
+      await this.publicApi.isReadyOrError
+      util.infoLogger("CLIENT | after isReady")
     } catch(error) {
-      util.errorLogger("CLIENT | ???")
+      util.infoLogger("CLIENT | isReady failed")
       util.errorLogger(error)
     }
-    util.infoLogger("CLIENT | IS READY SUCCESSFUL")
   }
 
    /* Disconnects from PUBLIC-rpc node - Example: farm-rpc.subspace.network */
@@ -235,21 +232,16 @@ export class Client {
 
   public async createRewardAddress(): Promise<string> {
     try {
-      await cryptoWaitReady()
-      console.log('createRewardAddress')
       const mnemonic = mnemonicGenerate()
-      util.infoLogger("before create keyring")
       const keyring = new Keyring({ type: 'sr25519', ss58Format: 2254}) // 2254 is the prefix for subspace-testnet
+      await cryptoWaitReady();
       const pair = keyring.createFromUri(mnemonic)
-      util.infoLogger("after create keyring")
       this.mnemonic = mnemonic
-      console.log('mnemonic', mnemonic)
       return pair.address
     } catch(error) {
       util.errorLogger(error)
       return "ERROR! Could not generate keyring"
     }
-
   }
 
   /* FARMER INTEGRATION */
