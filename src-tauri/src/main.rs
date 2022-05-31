@@ -13,7 +13,7 @@ mod node;
 use anyhow::Result;
 use log::{debug, error, info, LevelFilter};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::{path::PathBuf, thread, time::Duration};
 use tauri::SystemTrayEvent;
 use tauri::{
     api::{self},
@@ -60,6 +60,8 @@ async fn farming(path: String, reward_address: String, plot_size: u64) -> bool {
             // if there is an error, restart another farmer, and start listening again, in a loop
             loop {
                 let result = error_receiver.recv().await;
+                // probably node restarted, so wait 7 seconds before starting farmer
+                thread::sleep(Duration::from_millis(7000));
                 match result {
                     // we have received an error, let's restart the farmer
                     Some(_) => farmer::farm(
@@ -86,7 +88,12 @@ async fn farming(path: String, reward_address: String, plot_size: u64) -> bool {
 
 #[tauri::command]
 async fn start_node(path: String, node_name: String) {
-    node::init_node(path.into(), node_name).await.unwrap();
+    node::node_controller(path, node_name, "start").await;
+}
+
+#[tauri::command]
+async fn restart_node(path: String, node_name: String) {
+    node::node_controller(path, node_name, "restart").await;
 }
 
 #[tauri::command]
@@ -157,7 +164,8 @@ async fn main() -> Result<()> {
                 farming,
                 start_node,
                 frontend_error_logger,
-                frontend_info_logger
+                frontend_info_logger,
+                restart_node
             ],
             #[cfg(target_os = "windows")]
             tauri::generate_handler![
@@ -169,7 +177,8 @@ async fn main() -> Result<()> {
                 farming,
                 start_node,
                 frontend_error_logger,
-                frontend_info_logger
+                frontend_info_logger,
+                restart_node
             ],
         )
         .build(ctx)

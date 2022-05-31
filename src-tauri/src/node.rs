@@ -17,7 +17,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Once;
 use subspace_service::{FullClient, NewFull, SubspaceConfiguration};
-use tokio::runtime::Handle;
+use tokio::{runtime::Handle, task::JoinHandle};
 
 static INITIALIZE_SUBSTRATE: Once = Once::new();
 
@@ -47,7 +47,10 @@ impl NativeExecutionDispatch for ExecutorDispatch {
     }
 }
 
-pub(crate) async fn init_node(base_directory: PathBuf, node_name: String) -> Result<()> {
+pub(crate) async fn init_node(
+    base_directory: PathBuf,
+    node_name: String,
+) -> Result<JoinHandle<()>> {
     let chain_spec =
         sc_service::GenericChainSpec::<subspace_runtime::GenesisConfig>::from_json_bytes(
             include_bytes!("../chain-spec.json").as_ref(),
@@ -61,8 +64,7 @@ pub(crate) async fn init_node(base_directory: PathBuf, node_name: String) -> Res
 
     full_client.network_starter.start_network();
 
-    // TODO: Make this interruptable if needed
-    tokio::spawn(async move {
+    let node_handle = tokio::spawn(async move {
         if let Err(error) = full_client.task_manager.future().await {
             error!("Task manager exited with error: {error}");
         } else {
@@ -70,7 +72,7 @@ pub(crate) async fn init_node(base_directory: PathBuf, node_name: String) -> Res
         }
     });
 
-    Ok(())
+    Ok(node_handle)
 }
 
 // TODO: Allow customization of a bunch of these things
@@ -256,5 +258,21 @@ fn database_config(base_path: &Path, cache_size: usize, role: &Role) -> Database
         paritydb_path,
         rocksdb_path,
         cache_size,
+    }
+}
+
+pub async fn node_controller(path: String, node_name: String, command: &str) {
+    static mut NODE_HANDLE: Option<JoinHandle<()>> = None;
+    match command {
+        "start" => unsafe {
+            NODE_HANDLE = Some(init_node(path.into(), node_name).await.unwrap());
+        },
+        "restart" => unsafe {
+            drop(NODE_HANDLE.take());
+            NODE_HANDLE = Some(init_node(path.into(), node_name).await.unwrap());
+        },
+        _ => {
+            unreachable!("there are no other commands")
+        }
     }
 }
