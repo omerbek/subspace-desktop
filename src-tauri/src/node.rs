@@ -33,6 +33,11 @@ const NODE_KEY_ED25519_FILE: &str = "secret_ed25519";
 /// The recommended open file descriptor limit to be configured for the process.
 const RECOMMENDED_OPEN_FILE_DESCRIPTOR_LIMIT: u64 = 10_000;
 
+pub(crate) enum NodeCommands {
+    Start,
+    Restart,
+}
+
 pub(crate) struct ExecutorDispatch;
 
 impl NativeExecutionDispatch for ExecutorDispatch {
@@ -261,18 +266,15 @@ fn database_config(base_path: &Path, cache_size: usize, role: &Role) -> Database
     }
 }
 
-pub async fn node_controller(path: String, node_name: String, command: &str) {
+pub(crate) async fn node_controller(path: String, node_name: String, command: NodeCommands) {
     static mut NODE_HANDLE: Option<JoinHandle<()>> = None;
     match command {
-        "start" => unsafe {
+        NodeCommands::Start => unsafe {
             NODE_HANDLE = Some(init_node(path.into(), node_name).await.unwrap());
         },
-        "restart" => unsafe {
-            drop(NODE_HANDLE.take());
+        NodeCommands::Restart => unsafe {
+            NODE_HANDLE.take().unwrap().abort();
             NODE_HANDLE = Some(init_node(path.into(), node_name).await.unwrap());
         },
-        _ => {
-            unreachable!("there are no other commands")
-        }
     }
 }

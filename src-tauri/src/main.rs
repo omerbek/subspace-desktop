@@ -88,12 +88,12 @@ async fn farming(path: String, reward_address: String, plot_size: u64) -> bool {
 
 #[tauri::command]
 async fn start_node(path: String, node_name: String) {
-    node::node_controller(path, node_name, "start").await;
+    node::node_controller(path, node_name, node::NodeCommands::Start).await;
 }
 
 #[tauri::command]
 async fn restart_node(path: String, node_name: String) {
-    node::node_controller(path, node_name, "restart").await;
+    node::node_controller(path, node_name, node::NodeCommands::Restart).await;
 }
 
 #[tauri::command]
