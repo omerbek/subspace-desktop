@@ -17,7 +17,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Once;
 use subspace_service::{FullClient, NewFull, SubspaceConfiguration};
-use tokio::{runtime::Handle, task::JoinHandle};
+use tokio::{runtime::Handle, sync::Mutex, task::JoinHandle};
 
 static INITIALIZE_SUBSTRATE: Once = Once::new();
 
@@ -267,14 +267,16 @@ fn database_config(base_path: &Path, cache_size: usize, role: &Role) -> Database
 }
 
 pub(crate) async fn node_controller(path: String, node_name: String, command: NodeCommands) {
-    static mut NODE_HANDLE: Option<JoinHandle<()>> = None;
+    static NODE_HANDLE: Mutex<Option<JoinHandle<()>>> = Mutex::const_new(None);
     match command {
-        NodeCommands::Start => unsafe {
-            NODE_HANDLE = Some(init_node(path.into(), node_name).await.unwrap());
-        },
-        NodeCommands::Restart => unsafe {
-            NODE_HANDLE.take().unwrap().abort();
-            NODE_HANDLE = Some(init_node(path.into(), node_name).await.unwrap());
-        },
+        NodeCommands::Start => {
+            let mut node_handle_guard = NODE_HANDLE.lock().await;
+            *node_handle_guard = Some(init_node(path.into(), node_name).await.unwrap());
+        }
+        NodeCommands::Restart => {
+            let mut node_handle_guard = NODE_HANDLE.lock().await;
+            node_handle_guard.take().unwrap().abort();
+            *node_handle_guard = Some(init_node(path.into(), node_name).await.unwrap());
+        }
     }
 }
