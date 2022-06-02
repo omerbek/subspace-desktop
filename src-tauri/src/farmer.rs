@@ -1,10 +1,12 @@
 use anyhow::{anyhow, Result};
-use log::info;
+use log::{error, info};
+use std::net::TcpStream;
 use std::path::PathBuf;
 use subspace_core_primitives::PublicKey;
 use subspace_farmer::multi_farming::{MultiFarming, Options as MultiFarmingOptions};
 use subspace_farmer::{Identity, NodeRpcClient, ObjectMappings, Plot, RpcClient};
 use tokio::sync::mpsc::Sender;
+use tokio::time::{sleep, timeout, Duration};
 
 /// Start farming by using plot in specified path and connecting to WebSocket server at specified
 /// address.
@@ -15,7 +17,23 @@ pub(crate) async fn farm(
     plot_size: u64,
     error_sender: Sender<()>,
 ) -> Result<(), anyhow::Error> {
+    let mut not_connected = true;
+    if let Err(error) = timeout(Duration::from_secs(20), async {
+        while not_connected {
+            if let Ok(_) = TcpStream::connect("127.0.0.1:9947") {
+                not_connected = false;
+            } else {
+                sleep(Duration::from_millis(1000)).await;
+            }
+        }
+    })
+    .await
+    {
+        error!("Node is not responding for 20 seconds, farmer is unable to start");
+        return Err(anyhow!(error));
+    }
     raise_fd_limit();
+
     let reward_address = if let Some(reward_address) = reward_address {
         reward_address
     } else {

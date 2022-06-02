@@ -13,15 +13,14 @@ mod node;
 use anyhow::Result;
 use log::{debug, error, info, LevelFilter};
 use serde::Serialize;
-use std::{path::PathBuf, thread, time::Duration};
+use std::path::PathBuf;
 use tauri::SystemTrayEvent;
 use tauri::{
     api::{self},
     Env, Manager, RunEvent, WindowEvent,
 };
 use tauri_plugin_log::{LogTarget, LoggerBuilder};
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Serialize)]
 struct DiskStats {
@@ -60,8 +59,6 @@ async fn farming(path: String, reward_address: String, plot_size: u64) -> bool {
             // if there is an error, restart another farmer, and start listening again, in a loop
             loop {
                 let result = error_receiver.recv().await;
-                // probably node restarted, so wait 7 seconds before starting farmer
-                thread::sleep(Duration::from_millis(7000));
                 match result {
                     // we have received an error, let's restart the farmer
                     Some(_) => farmer::farm(
