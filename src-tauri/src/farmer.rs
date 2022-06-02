@@ -17,11 +17,10 @@ pub(crate) async fn farm(
     plot_size: u64,
     error_sender: Sender<()>,
 ) -> Result<(), anyhow::Error> {
-    let mut not_connected = true;
     if let Err(error) = timeout(Duration::from_secs(20), async {
-        while not_connected {
+        loop {
             if let Ok(_) = TcpStream::connect("127.0.0.1:9947") {
-                not_connected = false;
+                break;
             } else {
                 sleep(Duration::from_millis(1000)).await;
             }
